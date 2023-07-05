@@ -86,6 +86,7 @@ CALC_DICT = {
     "g09": Gaussian09,
     "g16": Gaussian16,
     "ipiserver": IPIServer,
+    "lammps": LAMMPS,
     "mopac": MOPAC,
     "multi": MultiCalc,
     "obabel": OBabel,
@@ -144,12 +145,8 @@ def parse_args(args):
     parser = argparse.ArgumentParser()
 
     action_group = parser.add_mutually_exclusive_group(required=True)
-    action_group.add_argument(
-        "yaml", nargs="?", help="Start pysisyphus with input from a YAML file."
-    )
-    action_group.add_argument(
-        "--clean", action="store_true", help="Ask for confirmation before cleaning."
-    )
+    action_group.add_argument("yaml", nargs="?", help="Start pysisyphus with input from a YAML file.")
+    action_group.add_argument("--clean", action="store_true", help="Ask for confirmation before cleaning.")
     action_group.add_argument(
         "--fclean",
         action="store_true",
@@ -160,9 +157,7 @@ def parse_args(args):
         action="store_true",
         help="Print bibtex string for pysisyphus paper.",
     )
-    action_group.add_argument(
-        "-v", "--version", action="store_true", help="Print pysisyphus version."
-    )
+    action_group.add_argument("-v", "--version", action="store_true", help="Print pysisyphus version.")
 
     run_type_group = parser.add_mutually_exclusive_group(required=False)
     run_type_group.add_argument(
@@ -174,14 +169,10 @@ def parse_args(args):
         "--cp",
         "--copy",
         nargs="+",
-        help="Copy .yaml file and corresponding geometries from the 'geom' section "
-        "to a new directory. The first argument is interpreted as destination. Any "
-        "remaining (optional) arguments are files that are also copied.",
+        help="Copy .yaml file and corresponding geometries from the 'geom' section " "to a new directory. The first argument is interpreted as destination. Any " "remaining (optional) arguments are files that are also copied.",
     )
 
-    parser.add_argument(
-        "--scheduler", default=None, help="Address of the dask scheduler."
-    )
+    parser.add_argument("--scheduler", default=None, help="Address of the dask scheduler.")
     return parser.parse_args()
 
 
@@ -219,9 +210,7 @@ def get_calc_closure(base_name, calc_key, calc_kwargs, iter_dict=None, index=Non
                 actual_key = actual_kwargs.pop("type")
                 # Pass 'index' to arguments, to avoid recreating calculators with
                 # the same name.
-                actual_calc = get_calc_closure(
-                    actual_base_name, actual_key, actual_kwargs, index=index
-                )()
+                actual_calc = get_calc_closure(actual_base_name, actual_key, actual_kwargs, index=index)()
                 kwargs_copy[val] = actual_calc
 
         kwargs_copy["base_name"] = base_name
@@ -277,9 +266,7 @@ def run_tsopt_from_cos(
         close_to_last = hei_index > len(cos.images) - 1.5
         if close_to_first or close_to_last:
             close_to = "first" if close_to_first else "last"
-            print(
-                f"Splined HEI is too close to the {close_to} image. Aborting TS optimization!"
-            )
+            print(f"Splined HEI is too close to the {close_to} image. Aborting TS optimization!")
             raise HEIIsFirstOrLastException
         # The hei_index is a float. We split off the decimal part and mix the two
         # nearest tangents accordingly.
@@ -331,9 +318,7 @@ def run_tsopt_from_cos(
         # ... and bends and dihedrals, if requested
         if coordinate_union == "bonds_bends_dihedrals":
             valid_prim_types += (PrimTypes.BEND, PrimTypes.PROPER_DIHEDRAL)
-        coord_kwargs["define_prims"] = [
-            tp for tp in typed_prims if tp[0] in valid_prim_types
-        ]
+        coord_kwargs["define_prims"] = [tp for tp in typed_prims if tp[0] in valid_prim_types]
         union_msg = f"Kept primitive types: {valid_prim_types}"
     else:
         union_msg = "No coordinate union."
@@ -366,9 +351,7 @@ def run_tsopt_from_cos(
     # Cartesian tangent and an animated .trj file
     cart_hei_fn = "cart_hei_tangent"
     np.savetxt(cart_hei_fn, cart_hei_tangent)
-    trj = get_tangent_trj_str(
-        ts_geom.atoms, ts_geom.cart_coords, cart_hei_tangent, points=10
-    )
+    trj = get_tangent_trj_str(ts_geom.atoms, ts_geom.cart_coords, cart_hei_tangent, points=10)
     trj_fn = cart_hei_fn + ".trj"
     with open(trj_fn, "w") as handle:
         handle.write(trj)
@@ -439,10 +422,7 @@ def run_tsopt_from_cos(
             print(f"\t{i:02d}: {ov:.6f}")
         max_ovlp_ind = np.argmax(ovlps)
         max_ovlp = ovlps[max_ovlp_ind]
-        print(
-            f"Imaginary mode {max_ovlp_ind} has highest overlap ({max_ovlp:.2%}) "
-            "with splined HEI tangent."
-        )
+        print(f"Imaginary mode {max_ovlp_ind} has highest overlap ({max_ovlp:.2%}) " "with splined HEI tangent.")
         rel_ovlps = np.array(ovlps) / max(ovlps)
         similar_inds = rel_ovlps > 0.80
         # Only 1 big overlap is present
@@ -455,29 +435,18 @@ def run_tsopt_from_cos(
             ovlp_root = similar_inds.argmax()
             neg_eigval = neg_eigvals[ovlp_root]
             verbose_inds = np.arange(neg_eigvals.size)[similar_inds]
-            print(
-                f"Overlaps {verbose_inds} are very similar! Falling back to the "
-                f"one with the most negative eigenvalue {neg_eigval:.6f} "
-                f"(mode {ovlp_root})."
-            )
+            print(f"Overlaps {verbose_inds} are very similar! Falling back to the " f"one with the most negative eigenvalue {neg_eigval:.6f} " f"(mode {ovlp_root}).")
         # Fallback to the most negative eigenvalue when all overlaps are too low.
         else:
             ovlp_root = neg_eigvals.argmin()
             neg_eigval = neg_eigvals[ovlp_root]
-            print(
-                f"Highest overlap {max_ovlp:.6f} is below the threshold "
-                f"of {ovlp_thresh:.6f}.\nFalling back to mode {ovlp_root} with most "
-                f"negative eigenvalue {neg_eigval:.6f}."
-            )
+            print(f"Highest overlap {max_ovlp:.6f} is below the threshold " f"of {ovlp_thresh:.6f}.\nFalling back to mode {ovlp_root} with most " f"negative eigenvalue {neg_eigval:.6f}.")
         root = tsopt_kwargs.get("root", None)
         if root is None:
             # Use mode with highest overlap as initial root
             tsopt_kwargs["root"] = ovlp_root
         else:
-            print(
-                f"Initial root={root} given, neglecting root {ovlp_root} "
-                "determined from overlaps."
-            )
+            print(f"Initial root={root} given, neglecting root {ovlp_root} " "determined from overlaps.")
 
     opt_result = run_opt(
         ts_geom,
@@ -531,9 +500,7 @@ def run_calculations(
         geom.set_calculator(calc_getter())
 
     if assert_track:
-        assert all(
-            [geom.calculator.track for geom in geoms]
-        ), "'track: True' must be present in calc section."
+        assert all([geom.calculator.track for geom in geoms]), "'track: True' must be present in calc section."
 
     if scheduler:
         client = Client(scheduler, pure=False, silence_logs=False)
@@ -561,11 +528,7 @@ def run_calculations(
             except KeyError:
                 print("Skipped JSON dump of calculation results!")
 
-            hess_keys = [
-                key
-                for key, val in results.items()
-                if isinstance(val, dict) and "hessian" in val
-            ]
+            hess_keys = [key for key, val in results.items() if isinstance(val, dict) and "hessian" in val]
             for hkey in hess_keys:
                 hres = results[hkey]
                 hfn = f"{hkey}_hessian.h5"
@@ -637,9 +600,7 @@ def run_md(geom, calc_getter, md_kwargs):
         gaussians.append((g_name, gau, g_stride))
 
     remove_com_v = md_kwargs.get("remove_com_v")
-    v0 = get_mb_velocities_for_geom(
-        geom, T_init_vel, seed=seed, remove_com_v=remove_com_v, remove_rot_v=False
-    ).flatten()
+    v0 = get_mb_velocities_for_geom(geom, T_init_vel, seed=seed, remove_com_v=remove_com_v, remove_rot_v=False).flatten()
     md_result = md(geom, v0=v0, steps=steps, dt=dt, gaussians=gaussians, **md_kwargs)
 
     # from pysisyphus.xyzloader import coords_to_trj
@@ -654,9 +615,7 @@ def run_md(geom, calc_getter, md_kwargs):
 
 def run_scan(geom, calc_getter, scan_kwargs, callback=None):
     print(highlight_text("Relaxed Scan") + "\n")
-    assert (
-        geom.coord_type != "cart"
-    ), "Internal coordinates are required for coordinate scans."
+    assert geom.coord_type != "cart", "Internal coordinates are required for coordinate scans."
 
     type_ = scan_kwargs["type"]
     indices = scan_kwargs["indices"]
@@ -672,13 +631,9 @@ def run_scan(geom, calc_getter, scan_kwargs, callback=None):
     #
     # So we always require steps and either end or step_size.
     # bool(a) != bool(b) amounts to an logical XOR.
-    assert (steps > 0) and (
-        bool(end) != bool(step_size)
-    ), "Please specify either 'end' or 'step_size'!"
+    assert (steps > 0) and (bool(end) != bool(step_size)), "Please specify either 'end' or 'step_size'!"
     if symmetric:
-        assert step_size and (
-            start is None
-        ), "'symmetric: True' requires 'step_size' and 'start == None'!"
+        assert step_size and (start is None), "'symmetric: True' requires 'step_size' and 'start == None'!"
 
     constrain_prims = normalize_prim_inputs(((type_, *indices),))
     constr_prim = constrain_prims[0]
@@ -722,9 +677,7 @@ def run_scan(geom, calc_getter, scan_kwargs, callback=None):
     else:
         # Negative direction
         print(highlight_text("Negative direction", level=1) + "\n")
-        minus_geoms, minus_vals, minus_energies = wrapper(
-            geom, start, -step_size, steps, pref="minus"
-        )
+        minus_geoms, minus_vals, minus_energies = wrapper(geom, start, -step_size, steps, pref="minus")
         init_geom = minus_geoms[0].copy()
         # Positive direction. Compared to the negative direction we start at a
         # displaced geometry and reduce the number of steps by 1.
@@ -732,9 +685,7 @@ def run_scan(geom, calc_getter, scan_kwargs, callback=None):
         plus_start = start + step_size
         # Do one step less, as we already start from the optimized geometry
         plus_steps = steps - 1
-        plus_geoms, plus_vals, plus_energies = wrapper(
-            init_geom, plus_start, step_size, plus_steps, pref="plus"
-        )
+        plus_geoms, plus_vals, plus_energies = wrapper(init_geom, plus_start, step_size, plus_steps, pref="plus")
         scan_geoms = minus_geoms[::-1] + plus_geoms
         scan_vals = np.concatenate((minus_vals[::-1], plus_vals))
         scan_energies = np.concatenate((minus_energies[::-1], plus_energies))
@@ -772,9 +723,7 @@ def run_preopt(first_geom, last_geom, calc_getter, preopt_key, preopt_kwargs):
                 "h5_group_name": prefix,
             }
         )
-        opt_result = run_opt(
-            geom, calc_getter, preopt_key, opt_kwargs, title=f"{key} preoptimization"
-        )
+        opt_result = run_opt(geom, calc_getter, preopt_key, opt_kwargs, title=f"{key} preoptimization")
         opt = opt_result.opt
         opt_results.append(opt_result)
 
@@ -856,10 +805,7 @@ def do_rmsds(xyz, geoms, end_fns, end_geoms, preopt_map=None, similar_thresh=0.2
             if rmsd < similar_thresh:
                 found_similar = True
                 similar_str = " (similar)"
-            print(
-                f"\tend geom {j:>2d} ({end_fn:>{max_end_len}s}): "
-                f"RMSD={rmsd:>8.6f} au{similar_str} " + cbm_str
-            )
+            print(f"\tend geom {j:>2d} ({end_fn:>{max_end_len}s}): " f"RMSD={rmsd:>8.6f} au{similar_str} " + cbm_str)
         if not found_similar:
             print(f"\tRMSDs of end geometries are dissimilar to '{fn}'!")
     print()
@@ -904,9 +850,7 @@ def run_endopt(irc, endopt_key, endopt_kwargs, calc_getter):
             # Disable higher fragment counts. I'm looking forward to the day
             # this ever occurs and someone complains :)
             assert len(fragments) < 10, "Something probably went wrong"
-            fragment_names.extend(
-                [f"{base_name}_frag{i:02d}" for i, _ in enumerate(fragments)]
-            )
+            fragment_names.extend([f"{base_name}_frag{i:02d}" for i, _ in enumerate(fragments)])
             print(f"Found {len(fragments)} fragment(s) at {base_name}")
             for frag_name, frag in zip(fragment_names, fragments):
                 print(f"\t{frag_name}: {len(frag)} atoms")
@@ -928,17 +872,12 @@ def run_endopt(irc, endopt_key, endopt_kwargs, calc_getter):
                 ]
             )
         elif skip_one_frag:
-            print(
-                f"Only one fragment present for '{key}'. Skipping optimization "
-                "of total system."
-            )
+            print(f"Only one fragment present for '{key}'. Skipping optimization " "of total system.")
 
         fragment_keys = [key] * len(fragments)
         fragment_atoms = [tuple(atoms[list(frag)]) for frag in fragments]
         fragment_coords = [c3d[frag].flatten() for frag in fragments]
-        fragments_to_opt.extend(
-            list(zip(fragment_keys, fragment_names, fragment_atoms, fragment_coords))
-        )
+        fragments_to_opt.extend(list(zip(fragment_keys, fragment_names, fragment_atoms, fragment_coords)))
         print()
 
     to_opt = fragments_to_opt
@@ -1290,9 +1229,7 @@ def setup_run_dict(run_dict):
     # Update nested entries that are dicts by themselves
     # Take care to insert a , after the string!
     key_set = set(org_dict.keys())
-    assert (
-        key_set <= VALID_KEYS
-    ), f"Found invalid keys in YAML input: {key_set - VALID_KEYS}"
+    assert key_set <= VALID_KEYS, f"Found invalid keys in YAML input: {key_set - VALID_KEYS}"
     for key in key_set & VALID_KEYS:
         try:
             # Recursive update, because there may be nested dicts
@@ -1304,23 +1241,11 @@ def setup_run_dict(run_dict):
 
 RunResult = namedtuple(
     "RunResult",
-    (
-        "preopt_first_geom preopt_last_geom "
-        "cos cos_opt "
-        "ts_geom ts_opt "
-        "end_geoms irc irc_geom "
-        "mdp_result "
-        "opt_geom opt "
-        "calced_geoms calced_results "
-        "stocastic calc_getter "
-        "scan_geoms scan_vals scan_energies "
-        "perf_results "
-    ),
+    ("preopt_first_geom preopt_last_geom " "cos cos_opt " "ts_geom ts_opt " "end_geoms irc irc_geom " "mdp_result " "opt_geom opt " "calced_geoms calced_results " "stocastic calc_getter " "scan_geoms scan_vals scan_energies " "perf_results "),
 )
 
 
 def main(run_dict, restart=False, yaml_dir="./", scheduler=None):
-
     # Dump run_dict
     run_dict_copy = run_dict.copy()
     run_dict_copy["version"] = __version__
@@ -1386,23 +1311,17 @@ def main(run_dict, restart=False, yaml_dir="./", scheduler=None):
         }
     else:
         iter_dict = None
-    calc_getter = get_calc_closure(
-        calc_base_name, calc_key, calc_kwargs, iter_dict=iter_dict
-    )
+    calc_getter = get_calc_closure(calc_base_name, calc_key, calc_kwargs, iter_dict=iter_dict)
     # Create second function that returns a wrapped calculator. This may be
     # useful if we later want to drop the wrapper and use the actual calculator.
     if "calc" in calc_kwargs:
         act_calc_kwargs = calc_kwargs["calc"].copy()
         act_calc_key = act_calc_kwargs.pop("type")
-        act_calc_getter = get_calc_closure(
-            "act_calculator", act_calc_key, act_calc_kwargs
-        )
+        act_calc_getter = get_calc_closure("act_calculator", act_calc_key, act_calc_kwargs)
     try:
         solv_calc_kwargs = run_dict["barriers"].pop("solv_calc")
         solv_calc_key = solv_calc_kwargs.pop("type")
-        solv_calc_getter = get_calc_closure(
-            "solv_calculator", solv_calc_key, solv_calc_kwargs
-        )
+        solv_calc_getter = get_calc_closure("solv_calculator", solv_calc_key, solv_calc_kwargs)
     except KeyError:
         solv_calc_getter = None
 
@@ -1419,9 +1338,7 @@ def main(run_dict, restart=False, yaml_dir="./", scheduler=None):
     # ------------------------+
 
     if run_dict["precontr"]:
-        ptr_geom0, ptr_geom_m1 = run_precontr(
-            geoms[0], geoms[1], prefix=run_dict["precontr"]["prefix"]
-        )
+        ptr_geom0, ptr_geom_m1 = run_precontr(geoms[0], geoms[1], prefix=run_dict["precontr"]["prefix"])
         geoms[0] = ptr_geom0
         geoms[-1] = ptr_geom_m1
 
@@ -1460,9 +1377,7 @@ def main(run_dict, restart=False, yaml_dir="./", scheduler=None):
     # as needed for growing COS classes, where images are added over time.
     if run_dict["cos"]:
         cos_cls = COS_DICT[cos_key]
-        if issubclass(cos_cls, GrowingChainOfStates) or isinstance(
-            cos_cls, type(FreezingString)
-        ):
+        if issubclass(cos_cls, GrowingChainOfStates) or isinstance(cos_cls, type(FreezingString)):
             cos_kwargs["calc_getter"] = get_calc_closure("image", calc_key, calc_kwargs)
         geom = COS_DICT[cos_key](geoms, **cos_kwargs)
     elif len(geoms) == 1:
@@ -1483,7 +1398,10 @@ def main(run_dict, restart=False, yaml_dir="./", scheduler=None):
         print_perf_results(perf_results)
     elif run_dict["afir"]:
         ts_guesses, afir_paths = run_afir_paths(
-            afir_key, geoms, calc_getter, **afir_kwargs,
+            afir_key,
+            geoms,
+            calc_getter,
+            **afir_kwargs,
         )
     # This case will handle most pysisyphus runs. A full run encompasses
     # the following steps:
@@ -1499,10 +1417,7 @@ def main(run_dict, restart=False, yaml_dir="./", scheduler=None):
     #
     # All keys are present in 'run_dict', but most of the corresponding values will
     # be set to zero.
-    elif any(
-        [run_dict[key] is not None for key in ("opt", "tsopt", "irc", "mdp", "endopt")]
-    ):
-
+    elif any([run_dict[key] is not None for key in ("opt", "tsopt", "irc", "mdp", "endopt")]):
         #######
         # OPT #
         #######
@@ -1513,9 +1428,7 @@ def main(run_dict, restart=False, yaml_dir="./", scheduler=None):
                 shaked_coords = shake_coords(geom.coords, **run_dict["shake"])
                 geom.coords = shaked_coords
                 print(f"Shaken coordinates:\n{geom.as_xyz()}")
-            opt_result = run_opt(
-                geom, calc_getter, opt_key, opt_kwargs, print_thermo=True
-            )
+            opt_result = run_opt(geom, calc_getter, opt_key, opt_kwargs, print_thermo=True)
             opt_geom = opt_result.geom
             opt = opt_result.opt
             # Keep a backup of the optimized geometry
@@ -1540,9 +1453,7 @@ def main(run_dict, restart=False, yaml_dir="./", scheduler=None):
             try:
                 if isinstance(geom, ChainOfStates.ChainOfStates):
                     ts_calc_getter = get_calc_closure(tsopt_key, calc_key, calc_kwargs)
-                    ts_opt_result = run_tsopt_from_cos(
-                        geom, tsopt_key, tsopt_kwargs, ts_calc_getter
-                    )
+                    ts_opt_result = run_tsopt_from_cos(geom, tsopt_key, tsopt_kwargs, ts_calc_getter)
                 else:
                     ts_opt_result = run_opt(
                         geom,
@@ -1583,7 +1494,6 @@ def main(run_dict, restart=False, yaml_dir="./", scheduler=None):
         # if ran_irc and run_dict["endopt"]:
         if run_dict["endopt"]:
             if not ran_irc:
-
                 _, irc_geom, _ = geoms  # IRC geom should correspond to the TS
 
                 class DummyIRC:
@@ -1593,9 +1503,7 @@ def main(run_dict, restart=False, yaml_dir="./", scheduler=None):
                         self.forward = True
                         self.backward = True
                         self.downhill = False
-                        self.all_coords = [
-                            geom.cart_coords.copy() for geom in (first, last)
-                        ]
+                        self.all_coords = [geom.cart_coords.copy() for geom in (first, last)]
                         self.hessian_init = "dummy"
 
                 irc = DummyIRC(geoms)
@@ -1663,9 +1571,7 @@ def main(run_dict, restart=False, yaml_dir="./", scheduler=None):
             mdp_result = run_mdp(geom, calc_getter, mdp_kwargs)
     # Fallback when no specific job type was specified
     else:
-        calced_geoms, calced_results = run_calculations(
-            geoms, calc_getter, scheduler, run_func=calc_run_func
-        )
+        calced_geoms, calced_results = run_calculations(geoms, calc_getter, scheduler, run_func=calc_run_func)
 
     # We can't use locals() in the dict comprehension, as it runs in its own
     # local scope.
@@ -1895,7 +1801,7 @@ def print_header():
 88888P"   "Y88888  88888P' 888  88888P'  "Y88888 88888P"  888  888  "Y88888  88888P'
 888  |        888   |  |    |     |          888 888       |    |              |
 888  O   Y8b d88P   o  |    X    / \    Y8b d88P 888       x   / \             O
-888       "Y88P"       O         \_/     "Y88P"  888           \_/              
+888       "Y88P"       O         \_/     "Y88P"  888           \_/
             |                         x           |                      \|/
    X        |                        xox          O                     --X--
             O                         x                                  /|\
@@ -1916,14 +1822,7 @@ def print_header():
     npv = np.__version__  # Numpy
     spv = sp.__version__  # SciPy
     cwd = Path(".").resolve()
-    print(
-        f"{logo}\n\n{version} (Python {sv}, NumPy {npv}, SciPy {spv})\n"
-        f"{commit_line}"
-        f"Executed at {now.strftime('%c')} on '{platform.node()}'\n"
-        f"Platform: {platform.platform()}\n"
-        f"Interpreter: {sys.executable}\n"
-        f"Current working directory: {cwd}\n"
-    )
+    print(f"{logo}\n\n{version} (Python {sv}, NumPy {npv}, SciPy {spv})\n" f"{commit_line}" f"Executed at {now.strftime('%c')} on '{platform.node()}'\n" f"Platform: {platform.platform()}\n" f"Interpreter: {sys.executable}\n" f"Current working directory: {cwd}\n")
 
 
 def print_bibtex():
@@ -1960,10 +1859,7 @@ def run_from_dict(
     print_header()
 
     # Citation
-    citation = (
-        "If pysisyphus benefitted your research please cite:\n\n"
-        "\thttps://doi.org/10.1002/qua.26390\n\nGood luck!\n"
-    )
+    citation = "If pysisyphus benefitted your research please cite:\n\n" "\thttps://doi.org/10.1002/qua.26390\n\nGood luck!\n"
     print(citation)
 
     init_logging(cwd, scheduler)
@@ -2011,10 +1907,7 @@ def load_run_dict(yaml_fn):
             if mobj:
                 err_unit = mobj.group(1)
                 best_match, _ = find_closest_sequence(err_unit, UNITS)
-                print(
-                    f"Unknown unit!\nKnown units are\n'{UNITS}'.\n"
-                    f"Did you mean '{best_match}', instead of '{err_unit}'?\n"
-                )
+                print(f"Unknown unit!\nKnown units are\n'{UNITS}'.\n" f"Did you mean '{best_match}', instead of '{err_unit}'?\n")
             raise err
         assert type(run_dict) == type(dict())
     except (AssertionError, yaml.parser.ParserError) as err:
