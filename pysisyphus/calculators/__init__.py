@@ -2,6 +2,7 @@ import logging
 
 __all__ = [
     "AFIR",
+    "ASECalc",
     "AtomAtomTransTorque",
     "Composite",
     "ConicalIntersection",
@@ -18,6 +19,7 @@ __all__ = [
     "HardSphere",
     "IPIServer",
     "LennardJones",
+    "LAMMPS",
     "MOPAC",
     "MultiCalc",
     "OBabel",
@@ -35,8 +37,8 @@ __all__ = [
     "XTB",
 ]
 
-
 from pysisyphus.calculators.AFIR import AFIR
+from pysisyphus.calculators.ASECalc import ASECalc
 from pysisyphus.calculators.AtomAtomTransTorque import AtomAtomTransTorque
 from pysisyphus.calculators.Composite import Composite
 from pysisyphus.calculators.ConicalIntersection import ConicalIntersection
