@@ -1,6 +1,7 @@
 from pysisyphus.calculators.Calculator import Calculator
 from pysisyphus.constants import BOHR2ANG, ANG2BOHR, AU2EV, EVANG2AUBOHR
 from pysisyphus.Geometry import Geometry
+import numpy as np
 
 
 class ASECalc(Calculator):
@@ -17,6 +18,7 @@ class ASECalc(Calculator):
         except ImportError:
             print("Please install the 'ase' package!")
             return None
+
         ase_atoms = ase.Atoms(symbols=atoms, positions=coords.reshape(-1, 3) * BOHR2ANG)
         energy = self.calc.get_potential_energy(ase_atoms) / AU2EV
         return {
@@ -32,9 +34,9 @@ class ASECalc(Calculator):
         ase_atoms = ase.Atoms(symbols=atoms, positions=coords.reshape(-1, 3) * BOHR2ANG)
         forces = self.calc.get_forces(ase_atoms) * EVANG2AUBOHR  # Do Units conversion
         results = {
-            "forces": forces,
+            "forces": forces.ravel(),
         }
-        results.update({"energy": self.calc.get_potential_energy(atoms) / AU2EV})
+        results.update({"energy": self.calc.get_potential_energy(ase_atoms) / AU2EV})
         return results
 
     @classmethod
@@ -43,7 +45,7 @@ class ASECalc(Calculator):
             calc = ase_atoms.calc
         if geom_kwargs is None:
             geom_kwargs = dict()
-
-        geom = Geometry(ase_atoms.species, ase_atoms.positions * ANG2BOHR, **geom_kwargs)
+        species = np.array(ase_atoms.get_chemical_symbols())
+        geom = Geometry(species, ase_atoms.positions * ANG2BOHR, **geom_kwargs)
         geom.set_calculator(cls(calc))
         return geom

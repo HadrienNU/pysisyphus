@@ -23,7 +23,7 @@ from pysisyphus.wavefunction.normalization import get_lmn_factors
 ZERO_THRESH = 1e-14
 
 
-@functools.cache
+@functools.lru_cache
 def cart2sph_coeff(lx: int, ly: int, lz: int, m: int) -> complex:
     """Coefficient to convert Cartesian to spherical harmonics.
 
@@ -61,32 +61,19 @@ def cart2sph_coeff(lx: int, ly: int, lz: int, m: int) -> complex:
 
     coeff = 0.0j
     for i in range(floor(lmm / 2) + 1):
-        i_fact = (
-            binom(l, i)
-            * binom(i, j)
-            * (-1) ** i
-            * fact(2 * l - 2 * i)
-            / fact(lmm - 2 * i)
-        )
+        i_fact = binom(l, i) * binom(i, j) * (-1) ** i * fact(2 * l - 2 * i) / fact(lmm - 2 * i)
         k_sum = 0.0
         for k in range(j + 1):
             prefact = (-1) ** (sign * (abs(m) - lx + 2 * k) / 2)
             k_sum += prefact * binom(j, k) * binom(abs(m), lx - 2 * k)
         coeff += i_fact * k_sum
-    coeff *= sqrt(
-        fact(2 * lx)
-        * fact(2 * ly)
-        * fact(2 * lz)
-        * lfact
-        * fact(lmm)
-        / (fact(2 * l) * fact(lx) * fact(ly) * fact(lz) * fact(l + abs(m)))
-    )
-    coeff *= 1 / (2**l * lfact)
+    coeff *= sqrt(fact(2 * lx) * fact(2 * ly) * fact(2 * lz) * lfact * fact(lmm) / (fact(2 * l) * fact(lx) * fact(ly) * fact(lz) * fact(l + abs(m))))
+    coeff *= 1 / (2 ** l * lfact)
 
     return coeff
 
 
-@functools.cache
+@functools.lru_cache
 def cart2sph_coeffs_for(
     l: int,
     real: bool = True,
@@ -120,10 +107,8 @@ def cart2sph_coeffs_for(
     return C
 
 
-@functools.cache
-def expand_sph_quantum_numbers(
-    Lm, zero_thresh=ZERO_THRESH, with_lmn_factors=False
-) -> Tuple[NDArray[float], List[Tuple[int, int, int]]]:
+@functools.lru_cache
+def expand_sph_quantum_numbers(Lm, zero_thresh=ZERO_THRESH, with_lmn_factors=False) -> Tuple[NDArray[float], List[Tuple[int, int, int]]]:
     """Factors and Cart. angular momentum vectors for given sph. quantum numbers."""
     L, m = Lm
     m += L  # Map m from [-L, L] onto [0, 2*L]
